@@ -300,68 +300,66 @@ class RobotKineClass():
         return T_0_n[0:3,3]
 
     #Check if point is in WS. returns true or false
-    def checkInWS(self, P):
-        xP, yP, zP = P
-        l1, l2, l3 = self.links
+    def checkInWS(self, P): #Define function and set P (the desired point in taskspace) as input
+    
+        #This step creates varaibles to make key equations easier to write and understand
+        xP, yP, zP = P #Seperate P in seperate variables for each dimension
+        l0, l1, l2 = self.links #Seperate links in seperate variables for each arm length
         
         ################################################ TASK 4
-        val = xP**2+yP**2+(zP-self.links[0])**2
-        r_max = self.links[1]+self.links[1]
-        r_min = self.links[1]-self.links[2]
+        val = np.power(xP,2) + np.power(yP,2)+np.power((zP-l0),2) #Calculates distnace of P from the origin of joint 1
+        r_max = l1 + l2 #Calcuates the maximum distance the end-effector can be from the origin of joint 1
+        r_min = l1 - l2 #Calcuates the minimum distance the end-effector can be from the origin of joint 1
 
-        inWS = True
+        inWS = True #Sets default output of function to be TRUE
 
-        if val > r_max**2. or val < r_min**2.:
-            inWS = False
+        #Checks to see if point P does not meet the inequalities and is outside the workspace
+        if val > r_max**2. or val < r_min**2.: #Checks if val is less then the min distnace or greater than 
+                                               #the max distance from joint 1 origin 
+            inWS = False #If P is outside workspace chnage output variable to FALSE
 
 
-        return inWS
+        return inWS #Return boolean ouput variable 
 
     # Solve IK gemoetrically. Returns list of all possible solutions
-    def getIK(self,P):
+    def getIK(self,P): #Define function and set P (the desired point in taskspace) as input
 
-        l1 = self.links[0]
-        l2 = self.links[1]
-        l3 = self.links[2]
+        #This step creates varaibles to make key equations easier to write and understand
+        xP, yP, zP = P #Seperate P in seperate variables for each dimension
+        l0, l1, l2 = self.links #Seperate links in seperate variables for each arm length
 
-        xP = P[0]
-        yP = P[1]
-        zP = P[2]
+        inWS = self.checkInWS(P) #Check if desired point is within the reachable workspace
 
-        inWS = self.checkInWS(P)
+        q = [] #Create empty joint-space vector
+        Poses = [] #Create empty task-space vector
 
-        q = []
-        Poses = []
-
-        if not inWS:
-            print("OUT OF WS. NO SOLUTION FOUND")
-            return q,Poses
+        if not inWS: #If desired pose P not in workspace
+            print("OUT OF WS. NO SOLUTION FOUND") #Print "OUT OF WS. NO SOLUTION FOUND" to terminal
+            return q,Poses #output empty vectors from function
         
         ################################################ TASK 6
-        q_a = np.zeros(3)
-        q_b = np.zeros(3)
+        q_a = np.zeros(3) #Create empty 1x3 array for first joint-space configuration
+        q_b = np.zeros(3) #Create empty 1x3 array for second joint-space configuration
 
-        q_a[0] = atan2(yP,xP)
-        q_b[0] = atan2(yP,xP)
+        q_a[0] = atan2(yP,xP) #Config. a inverse kinematics equation for the first joint angle
+        q_b[0] = q_a[0] #Config. b inverse kinematics equation for the first joint angle
 
-        r = xP
-        z = zP-l1;
-        
-        alpha = atan2(z,r)
-        beta = acos( (r**2+z**2+l2**2-l3**2) / ( (2*l2) * (r**2+z**2)**(1/2)) );
-        
-        q2 = acos((r**2+z**2-l2**2-l3**2)/(2*l2*l3));
+        r = np.sqrt(np.power(xP,2) + np.power(yP,2)) #Define r, the radius of P from the central axis
+        z = zP - l0 #Define z, adjusts z dimenions to be in the reference fram of axes 1
 
-        q_a[2] = alpha-beta;
-        q_b[2] = q2;
+        q_a[2] = acos((np.power(r,2)+np.power(z,2)-np.power(l1,2)-np.power(l2,2))/(2*l1*l2)) #Config. a inverse kinematics equation for the third joint angle
+        q_b[2] = -q_a[2] #Config. b inverse kinematics equation for the third joint angle. Simply negative of the other config.
 
-        q_a[1] = alpha+beta;
-        q_b[1] = -q2;
+        #Both configs. of the second joint angle have the same acos function, with different signs. Below is the acos function.
+        q1_acos =  acos((np.power(r,2)+np.power(z,2)+np.power(l1,2)-np.power(l2,2))/(2*l1*np.sqrt(np.power(r,2)+np.power(z,2))))
+
+        q_a[1] = atan2(z,r) - q1_acos #Config. a inverse kinematics equation for the second joint angle
+        q_b[1] = atan2(z,r) + q1_acos #Config. b inverse kinematics equation for the second joint angle
         
-        q = [q_a, q_b]
+        q = [q_a, q_b] #bring both configurations into one variable of joint-space
         
-        Poses = [self.getFK(q_a), self.getFK(q_b)]
-        return q, Poses
+        Poses = [self.getFK(q_a), self.getFK(q_b)] #Run both joint-space configurations through forward kinematics to get the pose, this can be compared to P
+        return q, Poses #Ouput the cacuated joint-space and the confirmation poses
 
     #given list of solutions q_IK, returns closest value to old one and list of error norms
     def chooseSol(self,q_IK,q_old):
