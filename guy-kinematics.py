@@ -378,17 +378,26 @@ class RobotKineClass():
 
         return q,diff
         
-    # Computes Differential Kinematics
-    def getDK(self, q, q_dot):
-        q0, q1, q2 = q
-        l1, l2, l3 = self.links
+          
+    # Computes Direct Differential Kinematics. 
+    # Returns 1x3 array of x_dot containing x, y and z end-effector velocities respectivly
+    def getDK(self, q, q_dot): #Define function and sets q & q_dot, the joint angles and their velocities for a desired pose as inputs
+    
+        #Creating individual variables make the Jacobian Matrix calculations more legible and understandable
+        q0, q1, q2 = q #Seperating q into three variables for each joint angle
+        l1, l2, l3 = self.links #Seperating links in seperate variables for each arm length
         
         ################################################ TASK 7
-        self.Jacobian = np.array([[0., 0., 0.],
-                                  [0., 0., 0.],
-                                  [0., 0., 0.]])
-        x_dot = np.matmul(self.Jacobian, q_dot)
-        return x_dot
+        #Creating a new global variable, Jacobian, that is a 3x3 array consisting of the partial derivatives of each position vector w.r.t. each joint angle
+        
+        self.Jacobian = np.array([[-(l1*cos(q1)+l2*cos(q1+q2))*sin(q0), -(l1*sin(q1)+l2*sin(q1+q2))*cos(q0), -(l2*sin(q1+q2))*cos(q0)], #J1 with three terms consisting of partial derivatives of xP w.r.t. each joint angle q0, q1, q2 respectivly
+                                  [(l1*cos(q1)+l2*cos(q1+q2))*cos(q0), -(l1*sin(q1)+l2*sin(q1+q2))*sin(q0), -(l2*sin(q1+q2)*sin(q0))], #J2 with three terms consisting of partial derivatives of yP w.r.t. each joint angle q0, q1, q2 respectivly
+                                  [0., (l1*cos(q1)+l2*cos(q1+q2)),(l2*cos(q1+q2))]]) #J3 with three terms consisting of partial derivatives of zP w.r.t. each joint angle q0, q1, q2 respectivly
+        
+        #Performing matrix multiplication of the Jacobian for the desired pose with the desired joint velocities
+        x_dot = np.matmul(self.Jacobian, q_dot) # 1x3 array of end-effector velocities in x, y and z axis
+       
+        return x_dot #Output the calculated end-effector velocities
 
     #send commands to Gazebo
     def sendCommands(self,q):
@@ -402,7 +411,6 @@ class RobotKineClass():
                 self.ROSPublishers[i].publish(q[i])
                 n_conn = self.ROSPublishers[i].get_num_connections()
                 rate.sleep()
-
 
 
 if __name__ == "__main__":
