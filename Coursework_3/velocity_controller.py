@@ -251,20 +251,20 @@ class VelocityController(b_pykdl.baxter_kinematics):
 
         ############################
         # Task E:
-        # Fill in the function to compute elbow Jacobian. Inputs are the joint values in KDL and the jacobian matrix
+        # Fill in the function to compute elbow Jacobian. Inputs are the joint values in  the jacobian matrix
         self._jac_kdl_link.JntToJac(q_kdl, jacobian)
 
-        J_link = self.kdl_to_mat(jacobian) # convert the jacobian from PyKDL format to numpy array
-
-        print 'J_Link'
-        print J_link
-        print 'nj_tot'
-        print nj_tot
+        J_link = self.kdl_to_mat(jacobian) # convert the jacobian from PyKDL format to KDL and numpy array
         
-        # after computing the jacobian for the elbow, we need to convert it to a full size jacobian        
+        # after computing the jacobian for the elbow, we need to convert it to a full size jacobian 
+        #J = np.zeros((6, nj_tot)) # Total Jacobain matrix. Fill in with J_link of elbow
+
+        # The Jacobian Matrix needs to be 6 x number of joints total, therefore needs 3 more columns
+        # Create a new variable, which adds three columns of 0s
         J = np.pad(J_link, [(0, 0), (0, 3)], mode='constant')
 
-        return J[0:3,:] # take only linear part of the jacobian
+        # Index into J to extract only the top three rows - the linear part
+        return J[0:3,:] 
 
     def ee_IK_solver(self, joint_values, P_des, quat_des, dt, nullspace_en, vel_elbow):
         """ solves the inverse velocity kinematics of the end effector """
@@ -321,20 +321,27 @@ class VelocityController(b_pykdl.baxter_kinematics):
             # and sampling time dt
             q_desired = self.joint_des
 
+            # 1st definition of qd2 uses a hardcoded q_desired and the current joint_values to create an approximate derivative by dividing by dt
             qd2 = (q_desired - joint_values) / dt    # replace [] with secondary joint velocities calculated from q_desired, joint_values, and sampling time dt.
             qd2 = 0.01 * qd2 # note that q_desired is the final joint configuration, so we artificially slow the speed down here (as if it is interpolating over a longer time period).
 
             ##########################
             #####Task G part ii
+            # Use the link Jacobian method (Task E part ii) to get a 3 x 7 matrix.
+            # This is the first 3 rows the elbow jacobian
             J_elbow = self.link_jacobian(joint_values)
             
             # uncomment the lines below
+            # Calculate the pseudo inverse with the DPInv function defined
             J_pinv_elbow = DPinv(J_elbow, 1e-6)    # replace [] with the elbow Jacobian
+
+            # Use matrix multiplication of the elbow's linear jacobian and the desired elbow velocities to define the motion to avoid the red ball.
             qd2 = np.matmul(J_pinv_elbow, vel_elbow)  # and replace [] with a matrix multiplication to compute secondary joint velocities given vel_elbow
 
-
-
+            # Multiply qd2 with the null space projector before adding to qd (qd is 0)
             qd = qd + np.matmul(Proj, qd2)  # projection in Null space
+
+            # This ensures the matrix is within the Null Space
 
         return qd
 
