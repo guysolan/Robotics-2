@@ -465,14 +465,14 @@ def main():
         ############################ TASK H
         # change external_force to make DE NIRO throw the brick into the wall (your code here)
         print 'y: ', y
-        if y > 1:
+        if y > 1: #if DE NIRO's left hand goes past 1m in Y from the centre of his body
             print 'ETXRENAL FORCE CHANGE'
-            switched_dir = True
+            switched_dir = True #switch direction
             
         if switched_dir:
-            external_force = np.array([5, -20, -3.0]) 
+            external_force = np.array([5, -20, -3.0]) # force to accelerate the end effector toward the wall
         else:
-            external_force = np.array([0.1, 1, 0.1])            # force to accelerate the end effector toward the wall
+            external_force = np.array([0.1, 1, 0.1])  # force to accelerate the end effector away from the wall
         
         position_error = np.array([x0 - x, y0 - y, z0 - z])     # position error
         velocity_error = np.array([- x_dot, - y_dot, - z_dot])   # velocity error
@@ -591,11 +591,12 @@ def main():
         if direction == 'right':
             ############ TASK I
             # external force (your code here)
-            external_force = np.array([0.0, 0.0, 0.0, 0, 0, 0]).reshape((6, 1))    # force to push down and across on the table
+            external_force = np.array([0.0, -10.0, -15.0, 0, 0, 0]).reshape((6, 1))    # force to push down and across on the table
             
             # add proportional and derivative control to keep the end effector from deviating in the x direction
             external_force += 400.0 * np.array([0.75 - x, 0.0, 0.0, 0.0, 0.0, 0.0]).reshape((6, 1))                 # proportional feedback
             external_force += 20.0 * np.array([- x_dot, - y_dot * 0.2, - z_dot, 0.0, 0.0, 0.0]).reshape((6, 1))     # derivative feedback
+            #external_force += 20.0 * np.array([- x_dot, - y_dot * 0.2, - z_dot, -x_omega*5, 0.0, 0.0]).reshape((6, 1))     # derivative feedback with orientation component
             
             # convert the external force that the end effector is applying to joint torques
             external_torque = np.matmul(J.T, external_force)
@@ -609,11 +610,12 @@ def main():
         if direction == 'left':
             ############ TASK I (continued)
             # external force (your code here)
-            external_force = np.array([0.0, 0.0, 0.0, 0, 0, 0]).reshape((6, 1))    # force to push down and across on the table
+            external_force = np.array([0.0, 10.0, -15.0, 0, 0, 0]).reshape((6, 1))    # force to push down and across on the table
             
             # add proportional and derivative control to keep the end effector from deviating in the x direction
             external_force += 400.0 * np.array([0.75 - x, 0.0, 0.0, 0.0, 0.0, 0.0]).reshape((6, 1))                 # proportional feedback
             external_force += 20.0 * np.array([- x_dot, - y_dot * 0.2, - z_dot, 0.0, 0.0, 0.0]).reshape((6, 1))     # derivative feedback
+            #external_force += 20.0 * np.array([- x_dot, - y_dot * 0.2, - z_dot, -x_omega*5, 0.0, 0.0]).reshape((6, 1))     # derivative feedback with orientation component
             
             # convert the external force that the end effector is applying to joint torques
             external_torque = np.matmul(J.T, external_force)
